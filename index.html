@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON File Splitter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .upload-hint {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .info-box.show {
+            display: block;
+        }
+        
+        .info-item {
+            margin: 8px 0;
+            color: #333;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar.show {
+            display: block;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .result-item {
+            background: #f8f9ff;
+            border: 1px solid #e0e4ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-info {
+            flex: 1;
+        }
+        
+        .result-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .result-size {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .download-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .download-btn:hover {
+            background: #5568d3;
+        }
+        
+        .download-all-btn {
+            background: #764ba2;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        .download-all-btn:hover {
+            background: #63408a;
+        }
+        
+        .error {
+            background: #ffe0e0;
+            border-left: 4px solid #ff4444;
+            color: #cc0000;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .reset-btn {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        
+        .reset-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .warning {
+            background: #fff4e0;
+            border-left: 4px solid #ff9800;
+            color: #8B5A00;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .warning.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 JSON File Splitter</h1>
+        <p class="subtitle">Split large JSON files into smaller parts (max 16MB each)</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click or drag & drop your JSON file here</div>
+            <div class="upload-hint">Supports files up to 100MB</div>
+            <input type="file" id="fileInput" accept=".json,application/json">
+        </div>
+        
+        <div class="info-box" id="infoBox">
+            <div class="info-item"><span class="info-label">File:</span> <span id="fileName"></span></div>
+            <div class="info-item"><span class="info-label">Original Size:</span> <span id="fileSize"></span></div>
+            <div class="info-item"><span class="info-label">Structure:</span> <span id="structure"></span></div>
+            <div class="info-item"><span class="info-label">Parts created:</span> <span id="partsCount"></span></div>
+        </div>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="error" id="error"></div>
+        <div class="warning" id="warning"></div>
+        
+        <div class="results" id="results">
+            <h3 style="margin-bottom: 15px; color: #333;">✅ Split Complete!</h3>
+            <div id="resultsList"></div>
+            <button class="download-all-btn" id="downloadAll">📥 Download All Parts</button>
+            <button class="reset-btn" onclick="location.reload()">🔄 Split Another File</button>
+        </div>
+    </div>
+
+    <script>
+        const MAX_SIZE_MB = 16;
+        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+        const TARGET_SIZE_BYTES = MAX_SIZE_BYTES * 0.90; // 90% to leave safety margin
+        let splitParts = [];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const infoBox = document.getElementById('infoBox');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const errorDiv = document.getElementById('error');
+        const warningDiv = document.getElementById('warning');
+        const results = document.getElementById('results');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.classList.add('show');
+            progressBar.classList.remove('show');
+        }
+
+        function showWarning(message) {
+            warningDiv.textContent = '⚠️ ' + message;
+            warningDiv.classList.add('show');
+        }
+
+        function hideError() {
+            errorDiv.classList.remove('show');
+            warningDiv.classList.remove('show');
+        }
+
+        function getStringSize(str) {
+            return new Blob([str]).size;
+        }
+
+        async function handleFile(file) {
+            hideError();
+            results.classList.remove('show');
+            
+            if (!file.name.endsWith('.json')) {
+                showError('Please select a JSON file');
+                return;
+            }
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatBytes(file.size);
+            infoBox.classList.add('show');
+
+            progressBar.classList.add('show');
+            progressFill.style.width = '30%';
+
+            try {
+                const text = await file.text();
+                progressFill.style.width = '50%';
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    showError('Invalid JSON file: ' + e.message);
+                    return;
+                }
+
+                progressFill.style.width = '60%';
+
+                // FIXED: Check original file size instead of re-stringified size
+                if (file.size <= MAX_SIZE_BYTES) {
+                    document.getElementById('partsCount').textContent = '1 (no splitting needed)';
+                    document.getElementById('structure').textContent = 'File under 16MB';
+                    showError('File is already under 16MB. No splitting needed!');
+                    errorDiv.style.background = '#e0f7e0';
+                    errorDiv.style.borderLeft = '4px solid #44cc44';
+                    errorDiv.style.color = '#006600';
+                    return;
+                }
+
+                progressFill.style.width = '70%';
+                await splitJSON(data, file.name);
+                
+                progressFill.style.width = '100%';
+                
+                setTimeout(() => {
+                    progressBar.classList.remove('show');
+                    results.classList.add('show');
+                }, 500);
+
+            } catch (error) {
+                showError('Error processing file: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function splitJSON(data, fileName) {
+            splitParts = [];
+            const baseName = fileName.replace('.json', '');
+            
+            // Check if it's an array with 1 large object
+            if (Array.isArray(data) && data.length === 1 && typeof data[0] === 'object') {
+                document.getElementById('structure').textContent = 'Array with 1 large object (deep split)';
+                await deepSplitSingleObject(data[0], baseName);
+            } else if (Array.isArray(data)) {
+                document.getElementById('structure').textContent = `Array with ${data.length} items`;
+                await splitArray(data, baseName);
+            } else if (typeof data === 'object') {
+                document.getElementById('structure').textContent = 'Object';
+                await splitObject(data, baseName);
+            } else {
+                showError('Unsupported JSON structure');
+            }
+        }
+
+        async function deepSplitSingleObject(obj, baseName) {
+            // Find the largest nested array
+            let largestArrayKey = null;
+            let largestArraySize = 0;
+            
+            for (const key in obj) {
+                if (Array.isArray(obj[key])) {
+                    const arraySize = getStringSize(JSON.stringify(obj[key], null, 2));
+                    if (arraySize > largestArraySize) {
+                        largestArraySize = arraySize;
+                        largestArrayKey = key;
+                    }
+                }
+            }
+            
+            if (!largestArrayKey) {
+                showError('No nested arrays found to split');
+                return;
+            }
+            
+            const nestedArray = obj[largestArrayKey];
+            let partNum = 1;
+            let currentChunk = [];
+            
+            for (let i = 0; i < nestedArray.length; i++) {
+                const item = nestedArray[i];
+                
+                // Calculate what the size would be with this item
+                const testChunk = [...currentChunk, item];
+                const testObj = [{...obj, [largestArrayKey]: testChunk}];
+                const testSize = getStringSize(JSON.stringify(testObj, null, 2));
+                
+                // If adding this item would exceed limit, save current part and start new one
+                if (testSize > TARGET_SIZE_BYTES && currentChunk.length > 0) {
+                    // Save current part
+                    const partObj = [{...obj, [largestArrayKey]: currentChunk}];
+                    const jsonString = JSON.stringify(partObj, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    
+                    // Verify size is under MAX_SIZE_BYTES
+                    if (blob.size > MAX_SIZE_BYTES) {
+                        showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual items.`);
+                    }
+                    
+                    const fileName = `${baseName}_part${partNum}.json`;
+                    splitParts.push({
+                        name: fileName,
+                        blob: blob,
+                        size: blob.size,
+                        items: currentChunk.length
+                    });
+                    
+                    partNum++;
+                    currentChunk = [];
+                }
+                
+                currentChunk.push(item);
+            }
+            
+            // Save final part
+            if (currentChunk.length > 0) {
+                const partObj = [{...obj, [largestArrayKey]: currentChunk}];
+                const jsonString = JSON.stringify(partObj, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                if (blob.size > MAX_SIZE_BYTES) {
+                    showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual items.`);
+                }
+                
+                const fileName = `${baseName}_part${partNum}.json`;
+                splitParts.push({
+                    name: fileName,
+                    blob: blob,
+                    size: blob.size,
+                    items: currentChunk.length
+                });
+            }
+            
+            document.getElementById('partsCount').textContent = splitParts.length;
+            displayResults();
+        }
+
+        async function splitArray(data, baseName) {
+            let partNum = 1;
+            let currentChunk = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                
+                // Calculate what the size would be with this item
+                const testChunk = [...currentChunk, item];
+                const testSize = getStringSize(JSON.stringify(testChunk, null, 2));
+                
+                // If adding this item would exceed limit, save current part and start new one
+                if (testSize > TARGET_SIZE_BYTES && currentChunk.length > 0) {
+                    // Save current part
+                    const jsonString = JSON.stringify(currentChunk, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    
+                    // Verify size is under MAX_SIZE_BYTES
+                    if (blob.size > MAX_SIZE_BYTES) {
+                        showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual items.`);
+                    }
+                    
+                    const fileName = `${baseName}_part${partNum}.json`;
+                    splitParts.push({
+                        name: fileName,
+                        blob: blob,
+                        size: blob.size,
+                        items: currentChunk.length
+                    });
+                    
+                    partNum++;
+                    currentChunk = [];
+                }
+                
+                currentChunk.push(item);
+            }
+            
+            // Save final part
+            if (currentChunk.length > 0) {
+                const jsonString = JSON.stringify(currentChunk, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                if (blob.size > MAX_SIZE_BYTES) {
+                    showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual items.`);
+                }
+                
+                const fileName = `${baseName}_part${partNum}.json`;
+                splitParts.push({
+                    name: fileName,
+                    blob: blob,
+                    size: blob.size,
+                    items: currentChunk.length
+                });
+            }
+            
+            document.getElementById('partsCount').textContent = splitParts.length;
+            displayResults();
+        }
+
+        async function splitObject(data, baseName) {
+            const keys = Object.keys(data);
+            let partNum = 1;
+            let currentChunk = {};
+            let currentKeys = [];
+            
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                
+                // Calculate what the size would be with this key-value pair
+                const testChunk = {...currentChunk, [key]: data[key]};
+                const testSize = getStringSize(JSON.stringify(testChunk, null, 2));
+                
+                // If adding this pair would exceed limit, save current part and start new one
+                if (testSize > TARGET_SIZE_BYTES && currentKeys.length > 0) {
+                    // Save current part
+                    const jsonString = JSON.stringify(currentChunk, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    
+                    // Verify size is under MAX_SIZE_BYTES
+                    if (blob.size > MAX_SIZE_BYTES) {
+                        showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual properties.`);
+                    }
+                    
+                    const fileName = `${baseName}_part${partNum}.json`;
+                    splitParts.push({
+                        name: fileName,
+                        blob: blob,
+                        size: blob.size,
+                        keys: currentKeys.length
+                    });
+                    
+                    partNum++;
+                    currentChunk = {};
+                    currentKeys = [];
+                }
+                
+                currentChunk[key] = data[key];
+                currentKeys.push(key);
+            }
+            
+            // Save final part
+            if (currentKeys.length > 0) {
+                const jsonString = JSON.stringify(currentChunk, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                if (blob.size > MAX_SIZE_BYTES) {
+                    showWarning(`Warning: Part ${partNum} is ${formatBytes(blob.size)} which exceeds ${MAX_SIZE_MB}MB. This may happen with very large individual properties.`);
+                }
+                
+                const fileName = `${baseName}_part${partNum}.json`;
+                splitParts.push({
+                    name: fileName,
+                    blob: blob,
+                    size: blob.size,
+                    keys: currentKeys.length
+                });
+            }
+            
+            document.getElementById('partsCount').textContent = splitParts.length;
+            displayResults();
+        }
+
+        function displayResults() {
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = '';
+            
+            splitParts.forEach((part, index) => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.innerHTML = `
+                    <div class="result-info">
+                        <div class="result-name">${part.name}</div>
+                        <div class="result-size">${formatBytes(part.size)}${part.items ? ` • ${part.items} items` : ''}${part.keys ? ` • ${part.keys} keys` : ''}</div>
+                    </div>
+                    <button class="download-btn" onclick="downloadPart(${index})">Download</button>
+                `;
+                resultsList.appendChild(div);
+            });
+        }
+
+        function downloadPart(index) {
+            const part = splitParts[index];
+            const url = URL.createObjectURL(part.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = part.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('downloadAll').addEventListener('click', () => {
+            splitParts.forEach((part, index) => {
+                setTimeout(() => downloadPart(index), index * 200);
+            });
+        });
+    </script>
+</body>
+</html>

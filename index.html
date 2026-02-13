@@ -248,7 +248,7 @@
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
             <div class="upload-text">Click or drag & drop your JSON file here</div>
-            <div class="upload-hint">Supports files up to 100MB</div>
+            <div class="upload-hint">Supports files up to 300MB</div>
             <input type="file" id="fileInput" accept=".json,application/json">
         </div>
         
@@ -370,8 +370,10 @@
 
                 progressFill.style.width = '60%';
 
-                // FIXED: Check original file size instead of re-stringified size
-                if (file.size <= MAX_SIZE_BYTES) {
+                const testString = JSON.stringify(data, null, 2);
+                const testSize = getStringSize(testString);
+                
+                if (testSize <= MAX_SIZE_BYTES) {
                     document.getElementById('partsCount').textContent = '1 (no splitting needed)';
                     document.getElementById('structure').textContent = 'File under 16MB';
                     showError('File is already under 16MB. No splitting needed!');
@@ -443,11 +445,6 @@
             for (let i = 0; i < nestedArray.length; i++) {
                 const item = nestedArray[i];
                 
-                // Give browser time to breathe every 10 items
-                if (i > 0 && i % 10 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-                
                 // Calculate what the size would be with this item
                 const testChunk = [...currentChunk, item];
                 const testObj = [{...obj, [largestArrayKey]: testChunk}];
@@ -475,10 +472,6 @@
                     
                     partNum++;
                     currentChunk = [];
-                    
-                    // Update progress
-                    const progress = 70 + ((i / nestedArray.length) * 25);
-                    progressFill.style.width = progress + '%';
                 }
                 
                 currentChunk.push(item);
@@ -514,11 +507,6 @@
             for (let i = 0; i < data.length; i++) {
                 const item = data[i];
                 
-                // Give browser time to breathe every 10 items
-                if (i > 0 && i % 10 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-                
                 // Calculate what the size would be with this item
                 const testChunk = [...currentChunk, item];
                 const testSize = getStringSize(JSON.stringify(testChunk, null, 2));
@@ -544,10 +532,6 @@
                     
                     partNum++;
                     currentChunk = [];
-                    
-                    // Update progress
-                    const progress = 70 + ((i / data.length) * 25);
-                    progressFill.style.width = progress + '%';
                 }
                 
                 currentChunk.push(item);
@@ -584,11 +568,6 @@
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 
-                // Give browser time to breathe every 10 items
-                if (i > 0 && i % 10 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-                
                 // Calculate what the size would be with this key-value pair
                 const testChunk = {...currentChunk, [key]: data[key]};
                 const testSize = getStringSize(JSON.stringify(testChunk, null, 2));
@@ -615,10 +594,6 @@
                     partNum++;
                     currentChunk = {};
                     currentKeys = [];
-                    
-                    // Update progress
-                    const progress = 70 + ((i / keys.length) * 25);
-                    progressFill.style.width = progress + '%';
                 }
                 
                 currentChunk[key] = data[key];
